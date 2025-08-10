@@ -25,17 +25,17 @@ export default function ClothingSuggestionCard({
    * URLの妥当性を検証し、無効な場合は楽天ファッションの検索ページにリダイレクト
    */
   const getValidUrl = (url: string | undefined): string => {
-    if (!url || url === '#' || !url.startsWith('http')) {
-      // 無効なURLの場合は楽天ファッションの検索ページにリダイレクト
-      return `https://brandavenue.rakuten.co.jp/`;
-    }
+    // if (!url || url === '#' || !url.startsWith('http')) {
+    //   // 無効なURLの場合は楽天ファッションの検索ページにリダイレクト
+    //   return `https://brandavenue.rakuten.co.jp/`;
+    // }
     
-    // 楽天ファッション以外のURLの場合は楽天ファッションの検索ページにリダイレクト
-    if (!url.includes('rakuten.co.jp')) {
-      return `https://brandavenue.rakuten.co.jp/`;
-    }
+    // // 楽天ファッション以外のURLの場合は楽天ファッションの検索ページにリダイレクト
+    // if (!url.includes('rakuten.co.jp')) {
+    //   return `https://brandavenue.rakuten.co.jp/`;
+    // }
     
-    return url;
+    return url || 'https://brandavenue.rakuten.co.jp/';
   };
 
   const validUrl = getValidUrl(suggestion.webUrl);
