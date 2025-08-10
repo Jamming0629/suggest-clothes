@@ -7,7 +7,7 @@ export interface AIConfig {
 }
 
 export const defaultAIConfig: AIConfig = {
-  openaiApiKey: process.env.NEXT_PUBLIC_OPENAI_API_KEY || '',
+  openaiApiKey: '',
   imageGenerationEnabled: true,
   model3DEnabled: true,
   maxImageSize: 1024,
@@ -54,15 +54,29 @@ export class AIConfigManager {
 
   private loadConfig(): void {
     try {
-      // 環境変数から設定を読み込み
-      this.config.openaiApiKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY || this.config.openaiApiKey;
-      
+      // 環境変数から設定を読み込み（.env.localファイル優先）
       if (typeof window !== 'undefined') {
+        // クライアントサイドでは環境変数を直接読み込めないため、
+        // サーバーサイドで設定された値を確認
+        const envApiKey = (window as any).__NEXT_DATA__?.props?.env?.OPENAI_API_KEY || 
+                         process.env.NEXT_PUBLIC_OPENAI_API_KEY;
+        
+        if (envApiKey) {
+          this.config.openaiApiKey = envApiKey;
+        }
+      } else {
+        // サーバーサイドでは直接環境変数を読み込み
+        this.config.openaiApiKey = process.env.OPENAI_API_KEY || 
+                                  process.env.NEXT_PUBLIC_OPENAI_API_KEY || 
+                                  this.config.openaiApiKey;
+      }
+      
+      // ローカルストレージから設定を読み込み（環境変数で設定されていない場合のみ）
+      if (typeof window !== 'undefined' && !this.config.openaiApiKey) {
         const savedConfig = localStorage.getItem('aiConfig');
         if (savedConfig) {
           const localConfig = JSON.parse(savedConfig);
-          // 環境変数で設定されていない場合のみローカルストレージから読み込み
-          if (!this.config.openaiApiKey && localConfig.openaiApiKey) {
+          if (localConfig.openaiApiKey) {
             this.config.openaiApiKey = localConfig.openaiApiKey;
           }
         }

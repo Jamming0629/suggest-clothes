@@ -18,21 +18,38 @@ export default function Home() {
   const [suggestions, setSuggestions] = useState<ClothingSuggestion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [imageLoading, setImageLoading] = useState(false);
-  const [apiKey, setApiKey] = useState('');
   const [showApiKeyInput, setShowApiKeyInput] = useState(false);
   const [error, setError] = useState('');
   const [showAISettings, setShowAISettings] = useState(false);
+  const [hasApiKey, setHasApiKey] = useState(false);
 
   useEffect(() => {
     // AI設定を初期化
     const configManager = AIConfigManager.getInstance();
     const config = configManager.getConfig();
     
-    if (config.openaiApiKey) {
-      setApiKey(config.openaiApiKey);
+    // 環境変数からAPIキーを確認
+    const envApiKey = process.env.OPENAI_API_KEY || 
+                     process.env.NEXT_PUBLIC_OPENAI_API_KEY || 
+                     (window as any).__NEXT_DATA__?.props?.env?.OPENAI_API_KEY;
+    
+    console.log('APIキー確認:', {
+      configApiKey: !!config.openaiApiKey,
+      envApiKey: !!envApiKey,
+      configLength: config.openaiApiKey.length,
+      envLength: envApiKey?.length || 0
+    });
+    
+    if (config.openaiApiKey || envApiKey) {
+      const finalApiKey = config.openaiApiKey || envApiKey;
+      setHasApiKey(true);
+      setShowApiKeyInput(false);
+      
+      // AIサービスにAPIキーを設定
       const aiService = AIService.getInstance();
-      aiService.setApiKey(config.openaiApiKey);
+      aiService.setApiKey(finalApiKey);
     } else {
+      setHasApiKey(false);
       setShowApiKeyInput(true);
     }
   }, []);
@@ -44,24 +61,9 @@ export default function Home() {
     }));
   };
 
-  const handleApiKeySubmit = () => {
-    if (apiKey.trim()) {
-      const configManager = AIConfigManager.getInstance();
-      configManager.setOpenAIApiKey(apiKey.trim());
-      
-      const aiService = AIService.getInstance();
-      aiService.setApiKey(apiKey.trim());
-      
-      setShowApiKeyInput(false);
-      setError('');
-    } else {
-      setError('APIキーを入力してください');
-    }
-  };
-
   const generateSuggestions = async () => {
-    if (!apiKey.trim()) {
-      setError('OpenAI APIキーが設定されていません');
+    if (!hasApiKey) {
+      setError('OpenAI APIキーが設定されていません。.env.localファイルにOPENAI_API_KEYを設定してください。');
       setShowApiKeyInput(true);
       return;
     }
@@ -69,14 +71,22 @@ export default function Home() {
     setIsLoading(true);
     setImageLoading(true);
     setError('');
+    setSuggestions([]);
     
     try {
       const aiService = AIService.getInstance();
       const results = await aiService.generateClothingSuggestions(preferences);
-      setSuggestions(results);
+      
+      if (results && results.length > 0) {
+        setSuggestions(results);
+        console.log('AIからの服の提案:', results);
+      } else {
+        setError('AIからの応答が空でした。設定を調整して再試行してください。');
+      }
     } catch (error) {
       console.error('服のサジェスト生成中にエラーが発生しました:', error);
-      setError('服のサジェスト生成中にエラーが発生しました。APIキーを確認してください。');
+      const errorMessage = error instanceof Error ? error.message : '不明なエラーが発生しました';
+      setError(`服のサジェスト生成に失敗しました: ${errorMessage}`);
     } finally {
       setIsLoading(false);
       setImageLoading(false);
@@ -105,7 +115,7 @@ export default function Home() {
         </header>
 
         {/* OpenAI APIキー設定 */}
-        {showApiKeyInput && (
+        {showApiKeyInput && !hasApiKey && (
           <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
             <h2 className="text-2xl font-semibold text-gray-800 mb-6">
               OpenAI APIキーの設定
@@ -113,26 +123,37 @@ export default function Home() {
             <p className="text-gray-600 mb-4">
               AIによる服のサジェスト機能を使用するには、OpenAI APIキーが必要です。
             </p>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+              <h3 className="font-semibold text-blue-800 mb-2">環境変数の設定方法</h3>
+              <p className="text-blue-700 text-sm mb-2">
+                プロジェクトのルートディレクトリに<code className="bg-blue-100 px-2 py-1 rounded">.env.local</code>ファイルを作成し、以下の内容を追加してください：
+              </p>
+              <pre className="bg-blue-100 p-3 rounded text-sm font-mono text-blue-800">
+OPENAI_API_KEY=sk-your-api-key-here
+              </pre>
+              <p className="text-blue-700 text-sm mt-2">
+                設定後、アプリケーションを再起動してください。
+              </p>
+            </div>
             <div className="flex gap-4">
-              <input
-                type="password"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                placeholder="sk-..."
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
               <button
-                onClick={handleApiKeySubmit}
+                onClick={() => window.location.reload()}
                 className="bg-blue-500 text-white font-semibold py-2 px-6 rounded-lg hover:bg-blue-600 transition-colors duration-200"
               >
-                設定
+                再読み込み
+              </button>
+              <button
+                onClick={() => setShowApiKeyInput(false)}
+                className="bg-gray-500 text-white font-semibold py-2 px-6 rounded-lg hover:bg-gray-600 transition-colors duration-200"
+              >
+                閉じる
               </button>
             </div>
             {error && (
               <p className="text-red-500 text-sm mt-2">{error}</p>
             )}
             <p className="text-xs text-gray-500 mt-2">
-              APIキーはローカルに保存され、外部には送信されません。
+              APIキーは.env.localファイルに保存され、外部には送信されません。
             </p>
           </div>
         )}
@@ -145,7 +166,7 @@ export default function Home() {
               onClick={() => setShowApiKeyInput(true)}
               className="text-red-600 underline text-sm mt-2 hover:text-red-800"
             >
-              APIキーを再設定
+              APIキー設定方法を確認
             </button>
           </div>
         )}
@@ -266,7 +287,7 @@ export default function Home() {
 
           <button
             onClick={generateSuggestions}
-            disabled={isLoading}
+            disabled={isLoading || !hasApiKey}
             className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold py-3 px-6 rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed mt-6"
           >
             {isLoading ? (
@@ -274,6 +295,8 @@ export default function Home() {
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
                 AIで分析中...
               </div>
+            ) : !hasApiKey ? (
+              'APIキーを設定してください'
             ) : (
               'AIで服をサジェストする'
             )}

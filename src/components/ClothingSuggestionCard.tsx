@@ -21,6 +21,25 @@ export default function ClothingSuggestionCard({
     setImageError(true);
   };
 
+  /**
+   * URLの妥当性を検証し、無効な場合は楽天ファッションの検索ページにリダイレクト
+   */
+  const getValidUrl = (url: string | undefined): string => {
+    if (!url || url === '#' || !url.startsWith('http')) {
+      // 無効なURLの場合は楽天ファッションの検索ページにリダイレクト
+      return `https://brandavenue.rakuten.co.jp/`;
+    }
+    
+    // 楽天ファッション以外のURLの場合は楽天ファッションの検索ページにリダイレクト
+    if (!url.includes('rakuten.co.jp')) {
+      return `https://brandavenue.rakuten.co.jp/`;
+    }
+    
+    return url;
+  };
+
+  const validUrl = getValidUrl(suggestion.webUrl);
+
   return (
     <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300">
       <div className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center relative">
@@ -74,16 +93,14 @@ export default function ClothingSuggestionCard({
           </span>
         </div>
         
-        {suggestion.webUrl && suggestion.webUrl !== '#' && (
-          <a
-            href={suggestion.webUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full bg-blue-500 text-white text-sm font-medium py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors duration-200 text-center block"
-          >
-            楽天で見る
-          </a>
-        )}
+        <a
+          href={validUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full bg-blue-500 text-white text-sm font-medium py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors duration-200 text-center block"
+        >
+          楽天で見る
+        </a>
       </div>
     </div>
   );

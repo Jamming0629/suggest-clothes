@@ -84,52 +84,71 @@ export class AIPromptConfigManager {
   public generatePrompt(preferences: any): string {
     const { personality, fashionAdvice, outputFormat, customInstructions } = this.settings;
     
-    let prompt = `あなたは専門的なファッションアドバイザーです。以下の設定に従って服のサジェストを提供してください：
+    let prompt = `あなたは専門的なファッションアドバイザーです。以下の厳格なルールに従って服のサジェストを提供してください。
 
-## 性格・トーン設定
-- トーン: ${this.getToneDescription(personality.tone)}
-- 言語: ${this.getLanguageDescription(personality.language)}
-- 詳細レベル: ${this.getDetailLevelDescription(personality.detailLevel)}
+## 重要: ハルシネーション禁止
+- 架空の商品、存在しない商品、想像で作った商品は絶対に提案しないでください
+- 推測や想像で商品を作り出さないでください
+- 必ず実際に検索して確認した商品のみを提案してください
+- 商品が見つからない場合は、空の配列[]を返してください
 
-## ファッションアドバイスの方向性
-- 焦点: ${this.getFocusDescription(fashionAdvice.focus)}
-- アクセサリー: ${fashionAdvice.includeAccessories ? '含める' : '含めない'}
-- スタイリングのヒント: ${fashionAdvice.includeStylingTips ? '含める' : '含めない'}
-- 価格帯: ${fashionAdvice.includePriceRange ? '含める' : '含めない'}
-- ブランド提案: ${fashionAdvice.includeBrandSuggestions ? '含める' : '含めない'}
+## 重要: 出力形式（必須）
+必ず以下のJSON形式で出力してください。他の説明やテキストは一切含めないでください：
 
-## 出力形式
-- 最大アイテム数: ${outputFormat.maxItems}個
-- 説明: ${outputFormat.includeDescriptions ? '含める' : '含めない'}
-- カラーパレット: ${outputFormat.includeColorPalettes ? '含める' : '含めない'}
-- 季節のアドバイス: ${outputFormat.includeSeasonalAdvice ? '含める' : '含めない'}
+[
+  {
+    "name": "商品名（実際の商品名）",
+    "description": "商品の特徴や魅力の詳細説明",
+    "category": "カテゴリ（トップス、ボトムス、ワンピース、アウター、シューズ、アクセサリーなど）",
+    "color": "実際の商品の色",
+    "webUrl": "楽天ブランドアベニューで実際に検索して見つけた商品のURL（そのまま出力）"
+  }
+]
+
+## 検索手順（必須）
+1. 楽天ブランドアベニュー（https://brandavenue.rakuten.co.jp/）で実際に検索を実行する
+2. 検索結果から実際に購入可能な商品を見つける
+3. 各商品の詳細ページにアクセスして情報を確認する
+4. 実際に購入可能な商品のURLを取得する
+5. 商品が見つからない場合は空の配列[]を返す
 
 ## ユーザーの好み
 ${JSON.stringify(preferences, null, 2)}
 
+## 設定
+- トーン: ${this.getToneDescription(personality.tone)}
+- 言語: ${this.getLanguageDescription(personality.language)}
+- 詳細レベル: ${this.getDetailLevelDescription(personality.detailLevel)}
+- 焦点: ${this.getFocusDescription(fashionAdvice.focus)}
+- 最大アイテム数: ${outputFormat.maxItems}個
+
 ## カスタム指示
 ${customInstructions || '特に指定なし'}
 
-## 重要: 検索指示
-必ず楽天ファッション（https://fashion.rakuten.co.jp/）で実際に検索して、現在購入可能な商品を提案してください。
-各提案には楽天ファッションの実際の商品ページのURLを含めてください。
-架空の商品や存在しないURLは絶対に使用しないでください。
+## 重要: 出力ルール
+1. 必ず上記のJSON形式で出力してください
+2. 商品が見つからない場合は空の配列[]を返してください
+3. 架空の商品や存在しないURLは絶対に使用しないでください
+4. 楽天ブランドアベニューで見つけた商品のURLをそのまま使用してください
+5. 他の説明文やテキストは一切含めないでください
+6. 必ず有効なJSON形式で出力してください（配列の開始と終了の括弧を含む）
+7. ハルシネーションは絶対に禁止されています
 
-## 検索手順
-1. 楽天ファッションのサイトで実際に検索を実行する
-2. ユーザーの好みに合う商品を見つける
-3. 実際に購入可能な商品のURLを取得する
-4. 各商品の詳細情報を確認する
+## 出力例
+以下は正しい出力例です：
 
-上記の設定に従って、楽天ファッションで実際に検索して見つけた購入可能な服を提案してください。
-各提案には以下の情報を含めてください：
-- 名前（実際の商品名）
-- 説明（商品の特徴や魅力）
-- カテゴリ（トップス、ボトムス、ワンピースなど）
-- 色（実際の商品の色）
-- 楽天ファッションの商品URL（実際にアクセス可能なURL）
+[
+  {
+    "name": "カジュアルTシャツ",
+    "description": "綿100%の快適な素材で作られたカジュアルなTシャツ",
+    "category": "トップス",
+    "color": "白",
+    "webUrl": "https://brandavenue.rakuten.co.jp/item/ABC123/"
+  }
+]
 
-必ず実際に検索して見つけた商品のみを提案し、JSON形式で出力してください。`;
+上記の設定に従って、楽天ブランドアベニューで実際に検索して見つけた購入可能な服を提案してください。
+必ず実際に検索して確認した商品のみを提案し、ハルシネーションは絶対に禁止されています。`;
 
     return prompt;
   }
